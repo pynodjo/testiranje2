@@ -8,7 +8,7 @@
 <body>
     <h1>Find Coordinates</h1>
     <form id="sifra-form">
-        <label for="sifra">Enter SIFRA:</label>
+        <label for="sifra">Unisite šifru mjernog mjesta:</label>
         <input type="text" id="sifra" name="sifra" required>
         <button type="submit">Get Coordinates</button>
     </form>
@@ -29,9 +29,9 @@
             .then(data => {
                 const resultDiv = document.getElementById('result');
                 if (data.url) {
-                    resultDiv.innerHTML = `<a href="${data.url}" target="_blank">Here is your Google Maps link</a>`;
+                    resultDiv.innerHTML = `<a href="${data.url}" target="_blank">Google Maps link: </a>`;
                 } else {
-                    resultDiv.textContent = 'SIFRA not found.';
+                    resultDiv.textContent = 'Šifra mjernog mjesta nije pronađena u bazi podataka. Provjeriti sa Odjeljenjem za priključenja da li je mjerno mjesto ucrtano.';
                 }
             });
         });
