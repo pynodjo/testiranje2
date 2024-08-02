@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Coordinates</title>
+</head>
+<body>
+    <h1>Find Coordinates</h1>
+    <form id="sifra-form">
+        <label for="sifra">Enter SIFRA:</label>
+        <input type="text" id="sifra" name="sifra" required>
+        <button type="submit">Get Coordinates</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('sifra-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const sifra = document.getElementById('sifra').value;
+            fetch('/get_coordinates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `sifra=${sifra}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                if (data.url) {
+                    resultDiv.innerHTML = `<a href="${data.url}" target="_blank">Here is your Google Maps link</a>`;
+                } else {
+                    resultDiv.textContent = 'SIFRA not found.';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
