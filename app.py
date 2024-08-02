@@ -12,9 +12,11 @@ with open('data.json', 'r') as file:
 
 # Create dictionaries for quick lookup
 sifra_to_coordinates = {feature['properties']['SIFRA']: feature['geometry']['coordinates']
-                        for feature in data['features']}
+                        for feature in data['features']
+                        if 'geometry' in feature and 'coordinates' in feature['geometry']}
 serijski_broj_to_coordinates = {feature['properties']['SERIJSKI_BROJ']: feature['geometry']['coordinates']
-                                for feature in data['features']}
+                                for feature in data['features']
+                                if 'geometry' in feature and 'coordinates' in feature['geometry']}
 
 def find_coordinates_by_sifra(sifra, sifra_to_coordinates):
     return sifra_to_coordinates.get(sifra, None)
@@ -34,10 +36,13 @@ def index():
 def get_coordinates_by_sifra():
     sifra = request.form.get('sifra')
     if sifra:
-        coordinates = find_coordinates_by_sifra(int(sifra), sifra_to_coordinates)
-        if coordinates:
-            url = create_google_maps_url(coordinates)
-            return jsonify({"url": url})
+        try:
+            coordinates = find_coordinates_by_sifra(int(sifra), sifra_to_coordinates)
+            if coordinates:
+                url = create_google_maps_url(coordinates)
+                return jsonify({"url": url})
+        except ValueError:
+            return jsonify({"error": "Invalid SIFRA format."}), 400
     return jsonify({"error": "SIFRA not found."}), 404
 
 @app.route('/get_coordinates_by_serijski_broj', methods=['POST'])
