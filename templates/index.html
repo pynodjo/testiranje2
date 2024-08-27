@@ -4,21 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find Coordinates</title>
+    <style>
+        button {
+            background-color: #87CEEB;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #00BFFF;
+        }
+        .spacer {
+            height: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Find Coordinates</h1>
+    <h1>Pojedinačna pretraga</h1>
+
+    <h2>Pretraga po šifri mjernog mjesta</h2>
     <form id="sifra-form">
-        <label for="sifra">Unisite šifru mjernog mjesta:</label>
+        <label for="sifra">Unisite šifru mjernog mjesta i kliknite button Lokacija za šifru mjernog mjesta:</label>
         <input type="text" id="sifra" name="sifra" required>
-        <button type="submit">Get Coordinates</button>
+        <button type="submit">Lokacija za šifru mjernog mjesta</button>
     </form>
-    <div id="result"></div>
+    <div id="result-sifra"></div>
+
+    <h2>Pretraga po serijskom broju brojila</h2>
+    <form id="serijski_broj-form">
+        <label for="serijski_broj">Unisite serijski broj brojila i kliknite button Lokacija za serijski broj:</label>
+        <input type="text" id="serijski_broj" name="serijski_broj" required>
+        <button type="submit">Lokacija za serijski broj</button>
+    </form>
+    <div id="result-serijski_broj"></div>
+
+    <div class="spacer"></div>
+    <button onclick="window.location.reload();">Osvježi</button>
+    <div class="spacer"></div>
 
     <script>
         document.getElementById('sifra-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const sifra = document.getElementById('sifra').value;
-            fetch('/get_coordinates', {
+            fetch('/get_coordinates_by_sifra', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -27,14 +57,36 @@
             })
             .then(response => response.json())
             .then(data => {
-                const resultDiv = document.getElementById('result');
+                const resultDiv = document.getElementById('result-sifra');
                 if (data.url) {
-                    resultDiv.innerHTML = `<a href="${data.url}" target="_blank">Google Maps link: </a>`;
+                    resultDiv.innerHTML = `<a href="${data.url}" target="_blank">Google Maps link</a>`;
                 } else {
-                    resultDiv.textContent = 'Šifra mjernog mjesta nije pronađena u bazi podataka. Provjeriti sa Odjeljenjem za priključenja da li je mjerno mjesto ucrtano.';
+                    resultDiv.textContent = data.error;
+                }
+            });
+        });
+
+        document.getElementById('serijski_broj-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const serijski_broj = document.getElementById('serijski_broj').value;
+            fetch('/get_coordinates_by_serijski_broj', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `serijski_broj=${serijski_broj}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result-serijski_broj');
+                if (data.url) {
+                    resultDiv.innerHTML = `<a href="${data.url}" target="_blank">Google Maps link</a>`;
+                } else {
+                    resultDiv.textContent = data.error;
                 }
             });
         });
     </script>
+    <p>Copyrights ED Mostar 2024</p>
 </body>
 </html>
