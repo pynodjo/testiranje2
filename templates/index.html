@@ -3,73 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find Coordinates</title>
+    <title>Pojedinčna pretraga</title>
     <style>
-        button {
-            background-color: #87CEEB;
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .refresh-button, .bottom-button {
+            display: block;
+            margin: 20px auto;
+            background-color: #4CAF50;
             color: white;
-            padding: 10px 20px;
+            padding: 10px 15px;
             border: none;
-            border-radius: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .refresh-button:hover, .bottom-button:hover {
+            background-color: #45a049;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
         }
         button:hover {
-            background-color: #00BFFF;
+            background-color: #45a049;
         }
-        .spacer {
-            height: 20px;
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .error {
+            color: red;
         }
-        th, td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        .success {
+            color: green;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .footer small {
+            font-size: 12px;
+            display: block;
+            margin-top: 5px;
         }
     </style>
 </head>
 <body>
-    <h1>Pojedinačna pretraga</h1>
 
-    <h2>Pretraga po šifri mjernog mjesta</h2>
-    <form id="sifra-form">
-        <label for="sifra">Unesite šifru mjernog mjesta i kliknite Pretraga:</label>
-        <input type="text" id="sifra" name="sifra" required>
-        <button type="submit">Pretraga</button>
-    </form>
-    <div id="result-sifra"></div>
+    <div class="container">    
+        <h1>Pojedinčna pretraga</h1>
 
-    <h2>Pretraga po serijskom broju brojila</h2>
-    <form id="serijski_broj-form">
-        <label for="serijski_broj">Unesite serijski broj brojila i kliknite Pretraga:</label>
-        <input type="text" id="serijski_broj" name="serijski_broj" required>
-        <button type="submit">Pretraga</button>
-    </form>
-    <div id="result-serijski_broj"></div>
+        <!-- Form to search by Šifra -->
+        <form id="sifra-form">
+            <label for="sifra">Pretraga po šifri mjernog mjesta:</label>
+            <input type="text" id="sifra" name="sifra" placeholder="Unesite šifru mjernog mjesta">
+            <button type="submit">Pretraga</button>
+        </form>
+        <div id="result-sifra" class="result"></div>
 
-    <div class="spacer"></div>
-    <button onclick="window.location.reload();">Osvježi</button>
-    <div class="spacer"></div>
+        <!-- Form to search by Serijski Broj -->
+        <form id="serijski_broj-form">
+            <label for="serijski_broj">Pretraga po serijskom broju brojila:</label>
+            <input type="text" id="serijski_broj" name="serijski_broj" placeholder="Unesite serijski broj brojila">
+            <button type="submit">Pretraga</button>
+        </form>
+        <div id="result-serijski_broj" class="result"></div>
+
+        <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
+    </div>
+
+    <div class="footer">
+        <p>© ED Mostar 2024</p>
+        <small>Ažurirano 01.09.2024.</small>
+    </div>
 
     <script>
-        function displayResult(data, resultDiv) {
-            if (data.url) {
-                let html = '<p>Lokacija: <a href="' + data.url + '" target="_blank">Google Maps link</a></p>';
-                if (data.additional_info) {
-                    html += '<table>';
-                    for (const [key, value] of Object.entries(data.additional_info)) {
-                        html += `<tr><th>${key}</th><td>${value}</td></tr>`;
-                    }
-                    html += '</table>';
-                }
-                resultDiv.innerHTML = html;
-            } else {
-                resultDiv.textContent = data.error;
-            }
-        }
-
+        // Function for searching by Šifra mjernog mjesta
         document.getElementById('sifra-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const sifra = document.getElementById('sifra').value;
@@ -83,10 +137,30 @@
             .then(response => response.json())
             .then(data => {
                 const resultDiv = document.getElementById('result-sifra');
-                displayResult(data, resultDiv);
+                if (data.url) {
+                    resultDiv.innerHTML = `
+                        <a href="${data.url}" target="_blank">Lokacija: Google Maps link</a><br>
+                        <table>
+                            <tr><td>Tip brojila:</td><td>${data['Tip brojila']}</td></tr>
+                            <tr><td>Godina baždarenja:</td><td>${data['Godina baždarenja']}</td></tr>
+                            <tr><td>Godina proizvodnje:</td><td>${data['Godina proizvodnje']}</td></tr>
+                            <tr><td>Datum montaže:</td><td>${data['Datum montaže']}</td></tr>
+                            <tr><td>Serijski broj brojila:</td><td>${data['Serijski broj brojila']}</td></tr>
+                            <tr><td>Kupac:</td><td>${data.Kupac}</td></tr>
+                            <tr><td>Adresa:</td><td>${data.Adresa}</td></tr>
+                            <tr><td>Šifra mjernog mjesta:</td><td>${data['Šifra mjernog mjesta']}</td></tr>
+                            <tr><td>Tarifna grupa:</td><td>${data['Tarifna grupa']}</td></tr>
+                            <tr><td>Angažovana snaga:</td><td>${data['Angažovana snaga']}</td></tr>
+                            <tr><td>Naziv trafostanice:</td><td>${data['Naziv trafostanice']}</td></tr>
+                        </table>
+                    `;
+                } else {
+                    resultDiv.textContent = data.error;
+                }
             });
         });
 
+        // Function for searching by Serijski broj brojila
         document.getElementById('serijski_broj-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const serijski_broj = document.getElementById('serijski_broj').value;
@@ -100,13 +174,29 @@
             .then(response => response.json())
             .then(data => {
                 const resultDiv = document.getElementById('result-serijski_broj');
-                displayResult(data, resultDiv);
+                if (data.url) {
+                    resultDiv.innerHTML = `
+                        <a href="${data.url}" target="_blank">Lokacija: Google Maps link</a><br>
+                        <table>
+                            <tr><td>Tip brojila:</td><td>${data['Tip brojila']}</td></tr>
+                            <tr><td>Godina baždarenja:</td><td>${data['Godina baždarenja']}</td></tr>
+                            <tr><td>Godina proizvodnje:</td><td>${data['Godina proizvodnje']}</td></tr>
+                            <tr><td>Datum montaže:</td><td>${data['Datum montaže']}</td></tr>
+                            <tr><td>Serijski broj brojila:</td><td>${data['Serijski broj brojila']}</td></tr>
+                            <tr><td>Kupac:</td><td>${data.Kupac}</td></tr>
+                            <tr><td>Adresa:</td><td>${data.Adresa}</td></tr>
+                            <tr><td>Šifra mjernog mjesta:</td><td>${data['Šifra mjernog mjesta']}</td></tr>
+                            <tr><td>Tarifna grupa:</td><td>${data['Tarifna grupa']}</td></tr>
+                            <tr><td>Angažovana snaga:</td><td>${data['Angažovana snaga']}</td></tr>
+                            <tr><td>Naziv trafostanice:</td><td>${data['Naziv trafostanice']}</td></tr>
+                        </table>
+                    `;
+                } else {
+                    resultDiv.textContent = data.error;
+                }
             });
         });
     </script>
 
-    <footer>
-        <p>&copy; 2024 Developed by [Your Name]. Last updated: 10.9.2024.</p>
-    </footer>
 </body>
 </html>
