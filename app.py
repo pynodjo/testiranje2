@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import json
 import pandas as pd
 import logging
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -21,42 +22,46 @@ sifra_to_coordinates = {feature['properties']['SIFRA']: feature['geometry']['coo
 df = pd.read_excel('EP_Eksport_Uredjaja.xlsx', sheet_name='Eksport_uredjaja', skiprows=6)
 df = df.rename(columns=lambda x: x.strip())
 df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-
-# Filtering out duplicate values added by report
 df = df[~(df.duplicated(subset='Šifra') & df['Naziv TS'].isnull())]
-
-# Ensure 'Serijski' and 'Šifra' are integers
 df['Serijski'] = df['Serijski'].astype(int)
 df['Šifra'] = df['Šifra'].astype(int)
-
-# Remove duplicates
 df = df.drop_duplicates(subset=['Serijski', 'Šifra'])
 
-# Rename columns
-df = df.rename(columns={
-    'Tip': 'Tip brojila',
-    'Baždarenje': 'Godina baždarenja',
-    'Proizvodnj': 'Godina proizvodnje',
-    'Datum žc': 'Datum montaže',
-    'Serijski': 'Serijski broj brojila',
-    'Šifra': 'Šifra mjernog mjesta',
-    'T': 'Tarifna grupa',
-    'A.sn': 'Angažovana snaga',
-    'Naziv TS': 'Naziv trafostanice'
-})
+# Mapping 'Serijski' to 'Šifra'
+serijski_broj_to_sifra = dict(zip(df['Serijski'], df['Šifra']))
 
-# Map 'Serijski' to all required fields
-serijski_broj_to_info = df.set_index('Serijski broj brojila').T.to_dict()
-
+# Utility functions
 def find_coordinates_by_sifra(sifra, sifra_to_coordinates):
     return sifra_to_coordinates.get(sifra, None)
 
-def find_info_by_serijski_broj(serijski_broj, serijski_broj_to_info):
-    return serijski_broj_to_info.get(serijski_broj, None)
+def find_sifra_by_serijski_broj(serijski_broj, serijski_broj_to_sifra):
+    return serijski_broj_to_sifra.get(serijski_broj, None)
 
 def create_google_maps_url(coordinates):
-    lon, lat = coordinates  # Reverse the order if needed
+    lon, lat = coordinates
     return f"https://www.google.com/maps?q={lat},{lon}"
+
+def format_date(date):
+    return date.strftime('%d.%m.%Y')
+
+def get_additional_info(sifra):
+    row = df[df['Šifra'] == sifra]
+    if not row.empty:
+        row = row.iloc[0]
+        return {
+            "Tip brojila": row['Tip'],
+            "Godina proizvodnje": format_date(row['Proizvodnj']),
+            "Godina baždarenja": format_date(row['Baždarenje']),
+            "Datum montaže": format_date(row['Datum žc']),
+            "Serijski broj brojila": row['Serijski'],
+            "Kupac": row['Kupac'],
+            "Adresa": row['Adresa'],
+            "Šifra mjernog mjesta": row['Šifra'],
+            "Tarifna grupa": row['T'],
+            "Angažovana snaga": row['A.sn'],
+            "Naziv trafostanice": row['Naziv TS']
+        }
+    return None
 
 @app.route('/')
 def index():
@@ -70,9 +75,10 @@ def get_coordinates_by_sifra():
         if sifra.isdigit():
             try:
                 coordinates = find_coordinates_by_sifra(int(sifra), sifra_to_coordinates)
-                if coordinates:
+                additional_info = get_additional_info(int(sifra))
+                if coordinates and additional_info:
                     url = create_google_maps_url(coordinates)
-                    return jsonify({"url": url})
+                    return jsonify({"url": url, "additional_info": additional_info})
                 return jsonify({"error": "Šifra mjernog mjesta nije pronađena u bazi podataka."}), 404
             except ValueError:
                 return jsonify({"error": "Invalid SIFRA format."}), 400
@@ -87,15 +93,13 @@ def get_coordinates_by_serijski_broj():
     if serijski_broj:
         if serijski_broj.isdigit():
             serijski_broj = int(serijski_broj)
-            info = find_info_by_serijski_broj(serijski_broj, serijski_broj_to_info)
-            app.logger.debug(f"Info for SERIJSKI_BROJ {serijski_broj}: {info}")
-            if info:
-                sifra = info['Šifra mjernog mjesta']
+            sifra = find_sifra_by_serijski_broj(serijski_broj, serijski_broj_to_sifra)
+            if sifra:
                 coordinates = find_coordinates_by_sifra(sifra, sifra_to_coordinates)
-                if coordinates:
+                additional_info = get_additional_info(sifra)
+                if coordinates and additional_info:
                     url = create_google_maps_url(coordinates)
-                    info['url'] = url
-                    return jsonify(info)
+                    return jsonify({"url": url, "additional_info": additional_info})
                 return jsonify({"error": "Šifra mjernog mjesta nije pronađena u bazi podataka."}), 404
             return jsonify({"error": "Serijski broj nije pronađen u bazi podataka."}), 404
         else:
