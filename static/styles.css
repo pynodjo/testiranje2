@@ -1,0 +1,105 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 10px 15px;
+    background-color: #4caf50; /* Lighter green for Osvježi */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+.validation-error {
+    color: red;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.result {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid #ccc;
+}
+
+td {
+    padding: 8px;
+}
+
+.bold-header {
+    font-weight: bold;
+}
+
+.error {
+    color: red;
+}
+
+.bottom-button {
+    margin-top: 20px;
+    padding: 10px 15px;
+    background-color: #4caf50; /* Lighter green for Osvježi */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: block; /* Centers the button */
+    margin-left: auto; /* Centering the button */
+    margin-right: auto; /* Centering the button */
+}
+
+.footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+
+/* Style for the datalist suggestions */
+.suggestion-option {
+    white-space: nowrap; /* Prevent text from wrapping */
+    width: 600px; /* Set the width to make it wider */
+}

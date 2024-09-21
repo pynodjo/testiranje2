@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np  # Import numpy
 import logging
 from datetime import datetime
+import re  # Add this import for regex
 
 app = Flask(__name__)
 
@@ -30,6 +31,9 @@ df = df.drop_duplicates(subset=['Serijski', 'Šifra'])
 
 # Mapping 'Serijski' to 'Šifra'
 serijski_broj_to_sifra = dict(zip(df['Serijski'], df['Šifra']))
+
+# New mapping for customer search
+kupac_to_info = df.groupby('Kupac').apply(lambda x: x[['Serijski', 'Adresa', 'Šifra']].to_dict('records')).reset_index(name='info').set_index('Kupac')['info'].to_dict()
 
 # Utility functions
 def find_coordinates_by_sifra(sifra, sifra_to_coordinates):
@@ -74,6 +78,10 @@ def get_additional_info(sifra):
             "Angažovana snaga": row['A.sn'],
             "Naziv trafostanice": row['Naziv TS']
         }
+        
+        # Replace NaN with None (to convert to null in JSON)
+        info = {key: (None if pd.isna(value) else value) for key, value in info.items()}
+        
         return convert_to_native_types(info)
     return None
 
@@ -94,15 +102,20 @@ def get_coordinates_by_sifra():
                 additional_info = get_additional_info(sifra)
                 app.logger.debug(f"Coordinates found: {coordinates}")
                 app.logger.debug(f"Additional info: {additional_info}")
-                if coordinates and additional_info:
-                    url = create_google_maps_url(coordinates)
-                    return jsonify({"url": url, "additional_info": additional_info})
+                if additional_info:
+                    result = {"additional_info": additional_info}
+                    if coordinates:
+                        url = create_google_maps_url(coordinates)
+                        result["url"] = url
+                    else:
+                        result["message"] = "Lokacija nije dostupna."
+                    return jsonify(result)
                 return jsonify({"error": "Šifra mjernog mjesta nije pronađena u bazi podataka."}), 404
             except ValueError:
                 return jsonify({"error": "Invalid SIFRA format."}), 400
         else:
             return jsonify({"error": "Uneseni podatak nije tipa integer (mora sadržavati samo brojeve)."}), 400
-    return jsonify({"error": "Šifra nije pronašena, provjerite tačnost unesenih podataka."}), 404
+    return jsonify({"error": "Šifra nije pronađena, provjerite tačnost unesenih podataka."}), 404
 
 @app.route('/get_coordinates_by_serijski_broj', methods=['POST'])
 def get_coordinates_by_serijski_broj():
@@ -119,14 +132,70 @@ def get_coordinates_by_serijski_broj():
                 additional_info = get_additional_info(sifra)
                 app.logger.debug(f"Coordinates found: {coordinates}")
                 app.logger.debug(f"Additional info: {additional_info}")
-                if coordinates and additional_info:
-                    url = create_google_maps_url(coordinates)
-                    return jsonify({"url": url, "additional_info": additional_info})
+                if additional_info:
+                    result = {"additional_info": additional_info}
+                    if coordinates:
+                        url = create_google_maps_url(coordinates)
+                        result["url"] = url
+                    else:
+                        result["message"] = "Lokacija nije dostupna."
+                    return jsonify(result)
                 return jsonify({"error": "Šifra mjernog mjesta nije pronađena u bazi podataka."}), 404
             return jsonify({"error": "Serijski broj nije pronađen u bazi podataka."}), 404
         else:
             return jsonify({"error": "Uneseni podatak nije tipa integer (mora sadržavati samo brojeve)."}), 400
     return jsonify({"error": "Serijski broj nije pronađen, provjerite tačnost unesenih podataka."}), 404
+
+# New routes for customer search
+@app.route('/get_customer_suggestions', methods=['POST'])
+def get_customer_suggestions():
+    kupac_input = request.form.get('kupac', '').lower()
+    if len(kupac_input) >= 3:
+        pattern = re.compile(f'.*{re.escape(kupac_input)}.*', re.IGNORECASE)
+        matches = []
+        for kupac, info in kupac_to_info.items():
+            if pattern.match(kupac):
+                for record in info:  # Loop through all records for the customer
+                    matches.append({
+                        'kupac': kupac,
+                        'serijski': record['Serijski'],
+                        'adresa': record['Adresa']
+                    })
+        return jsonify(matches[:10])  # Limit to 10 suggestions
+    return jsonify([])
+
+
+
+
+
+@app.route('/get_coordinates_by_kupac', methods=['POST'])
+def get_coordinates_by_kupac():
+    kupac_input = request.form.get('kupac')
+    serijski_input = request.form.get('serijski')
+
+    # Validate input
+    if kupac_input in kupac_to_info and serijski_input:
+        # Convert serijski input to an integer
+        serijski = int(serijski_input)
+
+        # Look up the corresponding SIFRA
+        sifra = find_sifra_by_serijski_broj(serijski, serijski_broj_to_sifra)
+
+        if sifra:
+            coordinates = find_coordinates_by_sifra(sifra, sifra_to_coordinates)
+            additional_info = get_additional_info(sifra)
+            
+            result = {"additional_info": additional_info}
+            if coordinates:
+                url = create_google_maps_url(coordinates)
+                result["url"] = url
+            else:
+                result["message"] = "Lokacija nije dostupna."
+            return jsonify(result)
+
+    return jsonify({"error": "Kupac ili serijski broj nije pronađen u bazi podataka."}), 404
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
