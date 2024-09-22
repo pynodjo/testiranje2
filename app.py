@@ -5,6 +5,9 @@ import numpy as np  # Import numpy
 import logging
 from datetime import datetime
 import re  # Add this import for regex
+import folium
+import atexit
+
 
 app = Flask(__name__)
 
@@ -195,6 +198,80 @@ def get_coordinates_by_kupac():
 
     return jsonify({"error": "Kupac ili serijski broj nije pronađen u bazi podataka."}), 404
 
+
+@app.route('/get_oh_values_by_oj/<oj_value>', methods=['GET'])
+def get_oh_values_by_oj(oj_value):
+    print(f"get_oh_values_by_oj called with oj_value: {oj_value}")
+    
+    try:
+        if oj_value == "303":
+            filtered_df = df[df['OJ'].isin([3031, 3032])]
+        else:
+            filtered_df = df[df['OJ'] == int(oj_value)]
+        
+        # Sort the filtered DataFrame by 'OH' in ascending order
+        filtered_df = filtered_df.sort_values(by='OH')
+
+        # Extract unique OH values after sorting
+        unique_oh_values = filtered_df['OH'].unique().tolist()
+        return jsonify(unique_oh_values)
+    except Exception as e:
+        print(f"Error in get_oh_values_by_oj: {str(e)}")
+        return jsonify([]), 500
+
+
+@app.route('/search_by_oj_oh', methods=['GET'])
+def search_by_oj_oh():
+    oj_value = request.args.get('oj')
+    oh_value = request.args.get('oh')
+    
+    print(f"search_by_oj_oh called with oj_value: {oj_value}, oh_value: {oh_value}")
+
+    try:
+        if oj_value == "303":
+            filtered_df = df[(df['OJ'].isin([3031, 3032])) & (df['OH'] == oh_value)]
+        else:
+            filtered_df = df[(df['OJ'] == int(oj_value)) & (df['OH'] == oh_value)]
+
+        print(f"Filtered DataFrame shape: {filtered_df.shape}")
+
+        folium_map = folium.Map(location=[43.343, 17.807], zoom_start=12)
+
+        for index, row in filtered_df.iterrows():
+            sifra = row['Šifra']
+            
+            coordinates = None
+            for feature in data['features']:
+                if feature['properties']['SIFRA'] == sifra:
+                    coordinates = feature['geometry']['coordinates']
+                    break
+            
+            if coordinates:
+                lon, lat = coordinates  # Note that coordinates are [longitude, latitude]
+                
+                # Prepare popup content
+                popup_content = (
+                    f"Kupac: <strong>{row['Kupac']}</strong><br>"
+                    f"Adresa: <strong>{row['Adresa']}</strong><br>"
+                    f"Šifra mjernog mjesta: <strong>{sifra}</strong><br>"
+                    f"Serijski broj brojila: <strong>{row['Serijski']}</strong><br>"
+                    f"Tip brojila: <strong>{row['Tip']}</strong><br>"
+                    f"ROH: <strong>{row['ROH']}</strong>"  # Add ROH here
+                )
+                
+                folium.Marker(
+                    [lat, lon],
+                    popup=popup_content
+                ).add_to(folium_map)
+            else:
+                print(f"No coordinates found for Šifra: {sifra}")
+
+        map_html = folium_map._repr_html_()
+        return map_html
+
+    except Exception as e:
+        print(f"Error in search_by_oj_oh: {str(e)}")
+        return f"An error occurred: {str(e)}", 500
 
 
 if __name__ == '__main__':
