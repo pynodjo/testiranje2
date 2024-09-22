@@ -50,9 +50,9 @@
         <h1>Geografski prikaz OH</h1>
         <select id="oj-dropdown" onchange="fetchOHValues()">
             <option value="">--Odaberite OJ--</option>
-            <option value="301">301</option>
-            <option value="302">302</option>
-            <option value="303">303</option>
+            <option value="301">PJD Mostar</option>
+            <option value="302">PJD Konjic</option>
+            <option value="303">PJD Jablanica</option>
         </select>
 
         <select id="oh-dropdown" onchange="enableSearchButton()" disabled>
@@ -63,6 +63,7 @@
 
         <div id="status"></div>
         <div id="map-container"></div>
+        <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
     </div>
 
 
@@ -238,52 +239,71 @@
         });
 
         // New JavaScript for customer search
-        document.getElementById('kupac').addEventListener('input', function (event) {
-            const kupacInput = event.target.value.trim();
-            if (kupacInput.length >= 3) {
-                fetch('/get_customer_suggestions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `kupac=${encodeURIComponent(kupacInput)}`
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        const datalist = document.getElementById('kupac-suggestions');
-                        datalist.innerHTML = '';
-                        data.forEach(suggestion => {
-                            const option = document.createElement('option');
-                            option.value = `${suggestion.kupac} (${suggestion.serijski}, ${suggestion.adresa})`;
-                            option.dataset.serijski = suggestion.serijski; // Store serial number in a data attribute
-                            option.className = 'suggestion-option'; // Add class for styling
-                            datalist.appendChild(option);
+        document.addEventListener('DOMContentLoaded', function () {
+            const kupacInput = document.getElementById('kupac');
+            const suggestionsContainer = document.createElement('div');
+            suggestionsContainer.id = 'suggestions-container';
+            suggestionsContainer.style.display = 'none';
+            kupacInput.parentNode.insertBefore(suggestionsContainer, kupacInput.nextSibling);
+
+            kupacInput.addEventListener('input', function (event) {
+                const kupacInputValue = event.target.value.trim();
+                if (kupacInputValue.length >= 3) {
+                    fetch('/get_customer_suggestions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `kupac=${encodeURIComponent(kupacInputValue)}`
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            suggestionsContainer.innerHTML = '';
+                            data.forEach(suggestion => {
+                                const suggestionElement = document.createElement('div');
+                                suggestionElement.textContent = `${suggestion.kupac} (${suggestion.serijski}, ${suggestion.adresa})`;
+                                suggestionElement.className = 'suggestion-item';
+                                suggestionElement.addEventListener('click', function () {
+                                    kupacInput.value = this.textContent;
+                                    suggestionsContainer.style.display = 'none';
+                                });
+                                suggestionsContainer.appendChild(suggestionElement);
+                            });
+                            suggestionsContainer.style.display = data.length > 0 ? 'block' : 'none';
                         });
-                    });
-            }
-        });
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
 
-        document.getElementById('kupac-form').addEventListener('submit', function (event) {
-            event.preventDefault();
-            const kupacInput = document.getElementById('kupac').value.trim();
-            const match = kupacInput.match(/^(.*?)\s*\((\d+),/); // Adjust regex to capture both kupac and serijski
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function (event) {
+                if (event.target !== kupacInput && event.target !== suggestionsContainer) {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
 
-            if (match) {
-                const kupac = match[1].trim();
-                const serijski = match[2]; // Extract the serijski from the match
+            document.getElementById('kupac-form').addEventListener('submit', function (event) {
+                event.preventDefault();
+                const kupacInput = document.getElementById('kupac').value.trim();
+                const match = kupacInput.match(/^(.*?)\s*\((\d+),/); // Adjust regex to capture both kupac and serijski
 
-                fetch('/get_coordinates_by_kupac', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `kupac=${encodeURIComponent(kupac)}&serijski=${encodeURIComponent(serijski)}`
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        const resultDiv = document.getElementById('result-kupac');
-                        if (data.url) {
-                            resultDiv.innerHTML = `
+                if (match) {
+                    const kupac = match[1].trim();
+                    const serijski = match[2]; // Extract the serijski from the match
+
+                    fetch('/get_coordinates_by_kupac', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `kupac=${encodeURIComponent(kupac)}&serijski=${encodeURIComponent(serijski)}`
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            const resultDiv = document.getElementById('result-kupac');
+                            if (data.url) {
+                                resultDiv.innerHTML = `
                         <table>
                             <tr><td class="bold-header">Lokacija:</td><td><a href="${data.url}" target="_blank">Google Maps link</a></td></tr>
                             <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
@@ -299,8 +319,8 @@
                             <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
                         </table>
                     `;
-                        } else if (Object.keys(data.additional_info).length > 0) {
-                            resultDiv.innerHTML = `
+                            } else if (Object.keys(data.additional_info).length > 0) {
+                                resultDiv.innerHTML = `
                         <p class="error">Lokacija nije pronađena, ali su sljedeći podaci dostupni:</p>
                         <table>
                             <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
@@ -316,17 +336,18 @@
                             <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
                         </table>
                     `;
-                        } else if (data.error) {
-                            resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error during fetch for Kupac search:', error);
-                        document.getElementById('result-kupac').innerHTML = '<p>Greška prilikom pretrage. Molimo pokušajte ponovo.</p>';
-                    });
-            } else {
-                document.getElementById('result-kupac').innerHTML = '<p>Nevažeći unos. Molimo odaberite kupca iz ponuđene liste.</p>';
-            }
+                            } else if (data.error) {
+                                resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error during fetch for Kupac search:', error);
+                            document.getElementById('result-kupac').innerHTML = '<p>Greška prilikom pretrage. Molimo pokušajte ponovo.</p>';
+                        });
+                } else {
+                    document.getElementById('result-kupac').innerHTML = '<p>Nevažeći unos. Molimo odaberite kupca iz ponuđene liste.</p>';
+                }
+            });
         });
 
         function fetchOHValues() {
@@ -385,6 +406,17 @@
             searchButton.disabled = !ohValue;
         }
 
+        function toggleFullScreen() {
+            const mapContainer = document.getElementById('map-container');
+            if (!document.fullscreenElement) {
+                mapContainer.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
         function performSearch() {
             const ojValue = document.getElementById('oj-dropdown').value;
             const ohValue = document.getElementById('oh-dropdown').value;
@@ -393,7 +425,7 @@
 
             console.log('Performing search with OJ:', ojValue, 'OH:', ohValue);
 
-            mapContainer.innerHTML = '';
+            mapContainer.innerHTML = ''; // Clear previous map
             statusDiv.textContent = 'Loading map...';
 
             fetch(`/search_by_oj_oh?oj=${encodeURIComponent(ojValue)}&oh=${encodeURIComponent(ohValue)}`)
@@ -405,7 +437,20 @@
                 })
                 .then(html => {
                     mapContainer.innerHTML = html;
+
+                    // Add Fullscreen button
+                    const fullscreenButton = document.createElement('button');
+                    fullscreenButton.id = 'fullscreen-button';
+                    fullscreenButton.textContent = 'Full Screen';
+                    fullscreenButton.onclick = toggleFullScreen;
+                    mapContainer.appendChild(fullscreenButton);
+
                     statusDiv.textContent = 'Map loaded successfully';
+
+                    // Automatically make it full-screen on mobile devices
+                    if (window.innerWidth < 768) {
+                        toggleFullScreen();
+                    }
                 })
                 .catch(error => {
                     console.error('Error performing search:', error);
@@ -417,7 +462,6 @@
         window.onload = function () {
             console.log('Page loaded');
         };
-
 
     </script>
 </body>

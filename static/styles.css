@@ -39,10 +39,16 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s ease; /* Smooth transition on hover */
 }
 
 button:hover {
     background-color: #45a049; /* Darker green on hover */
+}
+
+button:active {
+    background-color: #388e3c; /* Even darker green when clicked */
+    transform: scale(0.98); /* Slight button press effect */
 }
 
 .validation-error {
@@ -96,10 +102,102 @@ td {
     text-align: center;
     margin-top: 20px;
     font-size: 0.9em;
+    color: #666; /* Light grey color */
+}
+
+.footer a {
+    color: #4caf50; /* Green links */
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
 }
 
 /* Style for the datalist suggestions */
 .suggestion-option {
     white-space: nowrap; /* Prevent text from wrapping */
     width: 600px; /* Set the width to make it wider */
+}
+
+/* Dropdown styles */
+select {
+    width: 100%; /* Full width dropdown */
+    padding: 10px;
+    font-size: 16px; /* Increase font size for readability */
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px; /* Space between the dropdowns */
+    background-color: #f4f4f4;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    transition: all 0.2s ease; /* Smooth transition for interactions */
+}
+
+select:focus, select:hover {
+    border-color: #4caf50; /* Green highlight on hover/focus */
+    background-color: #e7f9e7; /* Light green background */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow on hover */
+}
+
+option {
+    padding: 10px; /* Padding for each option */
+    font-size: 16px; /* Larger font for options */
+}
+
+/* Ensure space between consecutive select dropdowns */
+select + select {
+    margin-top: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    select, input[type="text"], button {
+        width: 100%; /* Full width on smaller screens */
+        font-size: 14px; /* Slightly reduce font size for better fit */
+    }
+
+    .container {
+        padding: 15px;
+        max-width: 100%; /* Allow container to fit on smaller screens */
+    }
+}
+
+
+
+
+
+
+#map-container {
+    width: 100%;
+    height: 400px; /* Default height for non-fullscreen mode */
+    position: relative;
+}
+
+#map-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999; /* Make sure it's on top of everything */
+    background: white; /* Ensure the background is white in full screen */
+}
+
+#fullscreen-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 10px;
+    background-color: #8d928d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 10000; /* Ensure it's above the map */
+}
+
+#status {
+    margin-top: 20px;
+    text-align: center;
 }
