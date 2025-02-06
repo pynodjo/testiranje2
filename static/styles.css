@@ -13,6 +13,33 @@ body {
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
+.search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.suggestions-container {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
 
 h1 {
     color: #333;
@@ -148,13 +175,29 @@ select + select {
     margin-top: 15px;
 }
 
-#map-container {
+#map-container-OH {
     width: 100%;
     height: 400px;
     position: relative;
 }
 
-#map-container.fullscreen {
+#map-container-trafostanica {
+    width: 100%;
+    height: 400px;
+    position: relative;
+}
+
+#map-container-OH.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 9999;
+    background: white;
+}
+
+#map-container-trafostanica.fullscreen {
     position: fixed;
     top: 0;
     left: 0;
@@ -235,4 +278,175 @@ select + select {
         padding: 8px;
         font-size: 12px;
     }
+
+/*za mape css */
+.map-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+.map-button:hover {
+    background-color: #45a049;
+}
+
+
+
+.close-button {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1001;
+    background: white;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
+
+.close-button:hover {
+    background: #f0f0f0;
+}
+
+#map-view {
+    width: 100%;
+    height: 500px;
+    border: 1px solid #ddd;
+}
+
+
+#map-container-TSMM {
+    margin-top: 20px;
+    height: 500px;
+    width: 100%;
+    border: 1px solid #ccc;
+}
+
+
+}
+
+/*za combo box */
+<style>
+.search-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 1rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.searchable-dropdown {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.searchable-dropdown option {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.searchable-dropdown option:hover {
+    background-color: #f0f0f0;
+}
+</style>
+
+
+
+
+/*za prikaz više markera na mapi i biranje podloge od strane korisnika */
+.search-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 1rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.searchable-dropdown {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.searchable-dropdown option {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.searchable-dropdown option:hover {
+    background-color: #f0f0f0;
+}
+
+.fullscreen-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    padding: 5px 10px;
+    background: white;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fullscreen-button:hover {
+    background: #f4f4f4;
+}
+
+/* Style for the marker cluster */
+.marker-cluster-custom {
+    background-color: rgba(77, 144, 254, 0.6);
+    border-radius: 50%;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+}
+</style>
+
+/*full scrin button za prikaz mjernih mejsta po trafostanicama */
+
+.custom-fullscreen-btn {
+    padding: 6px 8px;
+    font-size: 14px;
+    background: white;
+    border-radius: 4px;
+    border: 2px solid rgba(0,0,0,0.2);
+    cursor: pointer;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+}
+
+.custom-fullscreen-btn:hover {
+    background: #f4f4f4;
+}
+
+.leaflet-bottom.leaflet-right {
+    margin-bottom: 10px;
+    margin-right: 10px;
 }

@@ -2,6 +2,15 @@
 <html lang="en">
 
 <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pojedinačna pretraga</title>
@@ -11,7 +20,7 @@
 <body>
 
     <div class="container">
-        <h1>Pojedinačna pretraga</h1>
+        <h1>Pretraga aktivnih kupaca</h1>
 
         <!-- Form to search by Šifra -->
         <form id="sifra-form">
@@ -43,11 +52,10 @@
         <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
     </div>
     <div style="height: 20px;"></div> <!-- Empty row -->
-
     <!-- Pretraga lokacija po OJ i OH -->
 
     <div class="container">
-        <h1>Geografski prikaz OH</h1>
+        <h1>Geografski prikaz mm po OH</h1>
         <select id="oj-dropdown" onchange="fetchOHValues()">
             <option value="">--Odaberite OJ--</option>
             <option value="301">PJD Mostar</option>
@@ -62,14 +70,63 @@
         <button id="search-button" onclick="performSearch()" disabled>Pretraga</button>
 
         <div id="status"></div>
-        <div id="map-container"></div>
+        <div id="map-container-OH"></div>
+        <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
+    </div>
+    <div style="height: 20px;"></div> <!-- Empty row -->
+
+    <!-- Pretraga svih kupaca iz baze deeo-union soee -->
+    <div class="container">
+        <h1>Geografski prikaz mm po TS</h1>
+        
+        <div class="search-container">
+            <input type="text" id="ts-search" placeholder="Pretraži trafostanice..." class="search-input">
+            <select id="ts-naziv-dropdown" size="5" class="searchable-dropdown">
+                <option value="">--Odaberite Trafostanicu (TS_NAZIV)--</option>
+            </select>
+        </div>
+        
+        <button id="search-button" onclick="fetchMapTSMM()">Pretraga</button>
+        
+        <div id="status"></div>
+        <div id="map-container-TSMM" style="height: 500px; width: 100%; margin-top: 20px;"></div>
+        <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
+    </div>
+
+    <div style="height: 20px;"></div> <!-- Empty row -->    
+
+    <!-- Pretraga podataka trafostanica -->
+    <div class="container">
+        <h1>Pretraga podataka trafostanica</h1>
+        <form id="trafostanica-form">
+            <label for="trafostanica">Pretraga po nazivu trafostanice:</label>
+            <div class="search-wrapper">
+                <input type="text" id="trafostanica" name="trafostanica" placeholder="Unesite naziv trafostanice">
+                <div id="trafostanica-suggestions" class="suggestions-container"></div>
+            </div>
+            <button type="submit">Pretraga</button>
+            <div id="trafostanica-error" class="validation-error"></div>
+        </form>
+        <div id="result-trafostanica" class="result"></div>
+        <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
+    </div>
+    <div style="height: 20px;"></div> <!-- Empty row -->
+    <!-- Prikaz svih trafostanica -->
+
+
+    <div class="container">
+        <h1>Geografski prikaz svih trafostanica</h1>
+        <button id="view-all-btn" class="map-button" onclick="loadAllTrafostanice()">Prikaži sve trafostanice na mapi</button>
+    
+        <div id="status"></div>
+        <div id="map-container-trafostanica"></div>
         <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
     </div>
 
 
     <div class="footer">
-        <p>© ED Mostar 2024</p>
-        <small>Ažurirano 28.11.2024.</small>
+        <p>© ED Mostar 2025</p>
+        <small>Ažurirano 06.02.2025.</small>
     </div>
 
     <script>
@@ -118,38 +175,38 @@
                     const resultDiv = document.getElementById('result-sifra');
                     if (data.url) {
                         resultDiv.innerHTML = `
-                        <table>
-                            <tr><td class="bold-header">Lokacija:</td><td><a href="${data.url}" target="_blank">Google Maps link</a><br></td></tr>
-                            <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
-                        </table>
-                    `;
+                                            <table>
+                                                <tr><td class="bold-header">Lokacija:</td><td><a href="${data.url}" target="_blank">Google Maps link</a><br></td></tr>
+                                                <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
+                                            </table>
+                                        `;
                     } else if (Object.keys(data.additional_info).length > 0) {
                         resultDiv.innerHTML = `
-                        <p class="error">Lokacija nije pronađena, ali su sljedeći podaci dostupni:</p>
-                        <table>
-                            <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
-                        </table>
-                    `;
+                                            <p class="error">Lokacija nije pronađena, ali su sljedeći podaci dostupni:</p>
+                                            <table>
+                                                <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
+                                            </table>
+                                        `;
                     } else {
                         resultDiv.innerHTML = '<p>Šifra mjernog mjesta nije pronađena u bazi podataka. Provjerite tačnost unesenih podataka.</p>';
                     }
@@ -196,38 +253,38 @@
                     const resultDiv = document.getElementById('result-serijski_broj');
                     if (data.url) {
                         resultDiv.innerHTML = `
-                        <table>
-                            <tr><td class="bold-header">Lokacija:</td><td><a href="${data.url}" target="_blank">Google Maps link</a><br></td></tr>
-                            <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
-                        </table>
-                    `;
+                                            <table>
+                                                <tr><td class="bold-header">Lokacija:</td><td><a href="${data.url}" target="_blank">Google Maps link</a><br></td></tr>
+                                                <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
+                                            </table>
+                                        `;
                     } else if (Object.keys(data.additional_info).length > 0) {
                         resultDiv.innerHTML = `
-                        <p class="error">Lokacija nije pronađena, ali su sljedeći podaci dostupni:</p>
-                        <table>
-                            <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
-                        </table>
-                    `;
+                                            <p class="error">Lokacija nije pronađena, ali su sljedeći podaci dostupni:</p>
+                                            <table>
+                                                <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
+                                            </table>
+                                        `;
                     } else {
                         resultDiv.innerHTML = '<p>Serijski broj brojila nije pronađen u bazi podataka. Provjerite tačnost unesenih podataka.</p>';
                     }
@@ -304,38 +361,38 @@
                             const resultDiv = document.getElementById('result-kupac');
                             if (data.url) {
                                 resultDiv.innerHTML = `
-                        <table>
-                            <tr><td class="bold-header">Lokacija:</td><td><a href="${data.url}" target="_blank">Google Maps link</a></td></tr>
-                            <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
-                        </table>
-                    `;
+                                            <table>
+                                                <tr><td class="bold-header">Lokacija:</td><td><a href="${data.url}" target="_blank">Google Maps link</a></td></tr>
+                                                <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
+                                            </table>
+                                        `;
                             } else if (Object.keys(data.additional_info).length > 0) {
                                 resultDiv.innerHTML = `
-                        <p class="error">Lokacija nije pronađena, ali su sljedeći podaci dostupni:</p>
-                        <table>
-                            <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
-                            <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
-                        </table>
-                    `;
+                                            <p class="error">Lokacija nije pronađena, ali su sljedeći podaci dostupni:</p>
+                                            <table>
+                                                <tr><td class="bold-header">Kupac:</td><td>${data.additional_info['Kupac'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Adresa:</td><td>${data.additional_info['Adresa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tip brojila:</td><td>${data.additional_info['Tip brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina baždarenja:</td><td>${data.additional_info['Godina baždarenja'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Godina proizvodnje:</td><td>${data.additional_info['Godina proizvodnje'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Datum montaže:</td><td>${data.additional_info['Datum montaže'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Serijski broj brojila:</td><td>${data.additional_info['Serijski broj brojila'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Šifra mjernog mjesta:</td><td>${data.additional_info['Šifra mjernog mjesta'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Tarifna grupa:</td><td>${data.additional_info['Tarifna grupa'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Angažovana snaga:</td><td>${data.additional_info['Angažovana snaga'] || 'N/A'}</td></tr>
+                                                <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.additional_info['Naziv trafostanice'] || 'N/A'}</td></tr>
+                                            </table>
+                                        `;
                             } else if (data.error) {
                                 resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
                             }
@@ -350,6 +407,9 @@
             });
         });
 
+        
+        
+        
         function fetchOHValues() {
             const oj = document.getElementById('oj-dropdown').value;
             const ohDropdown = document.getElementById('oh-dropdown');
@@ -369,16 +429,20 @@
             console.log('Fetching OH values for OJ:', oj);
             statusDiv.textContent = 'Loading OH values...';
 
+            // Using the correct URL format with template literal
             fetch(`/get_oh_values_by_oj/${oj}`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
                     console.log('Received OH values:', data);
-                    if (data.length === 0) {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    if (Array.isArray(data) && data.length === 0) {
                         ohDropdown.innerHTML = '<option value="">No OH values available</option>';
                         statusDiv.textContent = 'No OH values found for this OJ';
                     } else {
@@ -396,9 +460,10 @@
                     console.error('Error fetching OH values:', error);
                     ohDropdown.innerHTML = '<option value="">Error loading OH values</option>';
                     ohDropdown.disabled = false;
-                    statusDiv.textContent = 'Error loading OH values. Please try again.';
+                    statusDiv.textContent = `Error loading OH values: ${error.message}`;
                 });
         }
+
 
         function enableSearchButton() {
             const ohValue = document.getElementById('oh-dropdown').value;
@@ -406,8 +471,304 @@
             searchButton.disabled = !ohValue;
         }
 
-        function toggleFullScreen() {
-            const mapContainer = document.getElementById('map-container');
+        async function performSearch() {
+            const ojValue = document.getElementById('oj-dropdown').value;
+            const ohValue = document.getElementById('oh-dropdown').value;
+            const mapContainer = document.getElementById('map-container-OH');
+            const statusDiv = document.getElementById('status');
+
+            console.log('Performing search with OJ:', ojValue, 'OH:', ohValue);
+            
+            try {
+                statusDiv.textContent = 'Učitavanje mape...';
+                mapContainer.innerHTML = '';
+
+                // Create map container
+                const mapDiv = document.createElement('div');
+                mapDiv.style.height = '500px';
+                mapContainer.appendChild(mapDiv);
+
+                // Fetch data from backend
+                const response = await fetch(`/search_by_oj_oh?oj=${encodeURIComponent(ojValue)}&oh=${encodeURIComponent(ohValue)}`);
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Initialize map
+                currentMap = L.map(mapDiv).setView(data.center, 13);
+
+                // Define base maps
+                const baseMaps = {
+                    "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        maxZoom: 18,
+                        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    }),
+                    "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 21,
+                        attribution: '© OpenStreetMap contributors'
+                    })
+                };
+
+                // Add default layer
+                baseMaps["Satellite"].addTo(currentMap);
+
+                // Create marker cluster group
+                const markers = L.markerClusterGroup({
+                    showCoverageOnHover: true,
+                    zoomToBoundsOnClick: true,
+                    spiderfyOnMaxZoom: true,
+                    removeOutsideVisibleBounds: true,
+                    maxClusterRadius: 40,
+                    spiderfyDistanceMultiplier: 1.5,
+                    disableClusteringAtZoom: 22,
+                    chunkedLoading: true,
+                    iconCreateFunction: function(cluster) {
+                        const count = cluster.getChildCount();
+                        let size = count < 10 ? 30 : count < 100 ? 35 : 40;
+                        
+                        return L.divIcon({
+                            html: `<div><span>${count}</span></div>`,
+                            className: 'marker-cluster-custom',
+                            iconSize: L.point(size, size)
+                        });
+                    }
+                });
+
+                // Add markers to cluster group
+                data.features.forEach(feature => {
+                    const coords = feature.geometry.coordinates;
+                    const props = feature.properties;
+                    
+                    const popupContent = `
+                        <div style="font-family: Arial, sans-serif; min-width: 200px;">
+                            <h4 style="margin-bottom: 10px;">Detalji mjernog mjesta</h4>
+                            <p><strong>Kupac:</strong> ${props.IME_PREZIME || 'N/A'}</p>
+                            <p><strong>Adresa:</strong> ${props.ADRESA_MM || 'N/A'}</p>
+                            <p><strong>Šifra mjernog mjesta:</strong> ${props.SIFRA || 'N/A'}</p>
+                            <p><strong>Serijski broj:</strong> ${props.SERIJSKI || 'N/A'}</p>
+                            <p><strong>Tip:</strong> ${props.TIP || 'N/A'}</p>
+                            <p><strong>ROH:</strong> ${props.ROH || 'N/A'}</p>
+                        </div>
+                    `;
+                    
+                    const marker = L.marker([coords[1], coords[0]])
+                        .bindPopup(popupContent);
+                    
+                    markers.addLayer(marker);
+                });
+
+                // Add marker cluster to map
+                currentMap.addLayer(markers);
+
+                // Add custom fullscreen button
+                const fullscreenButton = L.control({position: 'topright'});
+                
+                fullscreenButton.onAdd = function (map) {
+                    const btn = L.DomUtil.create('button', 'custom-fullscreen-btn');
+                    btn.innerHTML = '🗖';
+                    btn.title = 'View Fullscreen';
+                    
+                    btn.onclick = function() {
+                        if (!document.fullscreenElement) {
+                            const elem = mapDiv;
+                            if (elem.requestFullscreen) {
+                                elem.requestFullscreen();
+                            } else if (elem.webkitRequestFullscreen) {
+                                elem.webkitRequestFullscreen();
+                            } else if (elem.msRequestFullscreen) {
+                                elem.msRequestFullscreen();
+                            }
+                            btn.innerHTML = '🗗';
+                        } else {
+                            if (document.exitFullscreen) {
+                                document.exitFullscreen();
+                            } else if (document.webkitExitFullscreen) {
+                                document.webkitExitFullscreen();
+                            } else if (document.msExitFullscreen) {
+                                document.msExitFullscreen();
+                            }
+                            btn.innerHTML = '🗖';
+                        }
+                    };
+                    
+                    return btn;
+                };
+                
+                fullscreenButton.addTo(currentMap);
+
+                // Add layer control
+                L.control.layers(baseMaps, null, {
+                    position: 'topright'
+                }).addTo(currentMap);
+
+                // Add scale control
+                L.control.scale().addTo(currentMap);
+
+                // Listen for fullscreen changes
+                document.addEventListener('fullscreenchange', function() {
+                    const btn = document.querySelector('.custom-fullscreen-btn');
+                    if (document.fullscreenElement) {
+                        btn.innerHTML = '🗗';
+                    } else {
+                        btn.innerHTML = '🗖';
+                    }
+                });
+
+                statusDiv.textContent = `Mapa uspješno učitana. Prikazano ${data.features.length} lokacija.`;
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.textContent = `Došlo je do greške: ${error.message}`;
+                mapContainer.innerHTML = `<p class="error">Došlo je do greške pri učitavanju mape: ${error.message}</p>`;
+            }
+        }
+
+        window.onload = function () {
+            console.log('Page loaded');
+        };
+
+        // New JavaScript for trafostanica search
+        document.addEventListener('DOMContentLoaded', function () {
+            const trafostanicaInput = document.getElementById('trafostanica');
+            const suggestionsContainer = document.getElementById('trafostanica-suggestions');
+            let debounceTimeout;
+
+            console.log('DOM loaded, setting up trafostanica search...');
+
+            function debounceSearch(func, wait) {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(func, wait);
+            }
+
+            function handleSuggestionClick(suggestion) {
+                console.log('Suggestion clicked:', suggestion);
+                trafostanicaInput.value = suggestion;
+                suggestionsContainer.style.display = 'none';
+            }
+
+            function updateSuggestions(suggestions) {
+                console.log('Updating suggestions:', suggestions);
+                suggestionsContainer.innerHTML = '';
+
+                if (suggestions && suggestions.length > 0) {
+                    suggestions.forEach(suggestion => {
+                        const div = document.createElement('div');
+                        div.textContent = suggestion;
+                        div.className = 'suggestion-item';
+                        div.addEventListener('click', () => handleSuggestionClick(suggestion));
+                        suggestionsContainer.appendChild(div);
+                    });
+                    suggestionsContainer.style.display = 'block';
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            }
+
+            trafostanicaInput.addEventListener('input', function (event) {
+                const inputValue = event.target.value.trim();
+                console.log('Input value changed:', inputValue);
+
+                if (inputValue.length >= 3) {
+                    debounceSearch(() => {
+                        console.log('Sending search request for:', inputValue);
+                        const formData = new FormData();
+                        formData.append('input', inputValue);
+
+                        fetch('/get_trafostanica_suggestions', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                console.log('Response status:', response.status);
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log('Received suggestions data:', data);
+                                if (data.suggestions) {
+                                    updateSuggestions(data.suggestions);
+                                } else {
+                                    console.warn('No suggestions in response');
+                                    suggestionsContainer.style.display = 'none';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching suggestions:', error);
+                                suggestionsContainer.style.display = 'none';
+                            });
+                    }, 300); // Debounce delay of 300ms
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function (event) {
+                if (!trafostanicaInput.contains(event.target) && !suggestionsContainer.contains(event.target)) {
+                    console.log('Clicked outside suggestions');
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+
+            // Handle form submission
+            document.getElementById('trafostanica-form').addEventListener('submit', function (event) {
+                event.preventDefault();
+                console.log('Form submitted');
+
+                const trafostanicaValue = trafostanicaInput.value.trim();
+                console.log('Submitting search for:', trafostanicaValue);
+
+                fetch('/get_trafostanica_data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ trafostanica: trafostanicaValue })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Received search result:', data);
+                        const resultDiv = document.getElementById('result-trafostanica');
+
+                        if (data.google_maps_url) {
+                            resultDiv.innerHTML = `
+                                <table>
+                                    <tr><td class="bold-header">Lokacija:</td><td><a href="${data.google_maps_url}" target="_blank">Google Maps link</a></td></tr>
+                                    <tr><td class="bold-header">Naziv trafostanice:</td><td>${data.naziv || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Snaga:</td>  <td>${data.snaga ? `${data.snaga} kVA` : 'N/A'}</td>
+                                    <tr><td class="bold-header">Broj transformatora:</td><td>${data.broj_transformatora || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Konfiguracija SN postrojenja:</td><td>${data.konfiguracija_SN_postrojenja || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Napojna trafostanica:</td><td>${data.napojna_trafostanica || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Naziv SN odlaza:</td><td>${data.naziv_SN_odlaza || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Tip trafostanice:</td><td>${data.tip_trafostanice || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Poslovnica:</td><td>${data.poslovnica || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Tip Kućišta:</td><td>${data.tip_kucista || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Tip izolacije:</td><td>${data.tip_izolacije || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Vlasnik:</td><td>${data.vlasnik || 'N/A'}</td></tr>
+                                    <tr><td class="bold-header">Godina izgradnje:</td><td>${data.godina_izgradnje || 'N/A'}</td></tr>
+                                </table>
+                            `;
+                        } else if (data.error) {
+                            resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error during search:', error);
+                        document.getElementById('result-trafostanica').innerHTML =
+                            '<p class="error">Greška prilikom pretrage. Molimo pokušajte ponovo.</p>';
+                    });
+            });
+        });
+
+
+        // Pregled svih trafostanica
+        function toggleFullScreenTrafostanica() {
+            const mapContainer = document.getElementById('map-container-trafostanica');
             if (!document.fullscreenElement) {
                 mapContainer.requestFullscreen().catch(err => {
                     console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
@@ -417,51 +778,407 @@
             }
         }
 
-        function performSearch() {
-            const ojValue = document.getElementById('oj-dropdown').value;
-            const ohValue = document.getElementById('oh-dropdown').value;
-            const mapContainer = document.getElementById('map-container');
+        // Function to load all trafostanice
+        function loadAllTrafostanice() {
+            const mapContainer = document.getElementById('map-container-trafostanica');
             const statusDiv = document.getElementById('status');
-
-            console.log('Performing search with OJ:', ojValue, 'OH:', ohValue);
-
-            mapContainer.innerHTML = ''; // Clear previous map
-            statusDiv.textContent = 'Loading map...';
-
-            fetch(`/search_by_oj_oh?oj=${encodeURIComponent(ojValue)}&oh=${encodeURIComponent(ohValue)}`)
+            
+            mapContainer.innerHTML = '';
+            statusDiv.textContent = 'Učitavanje mape...';
+            
+            fetch('/view_all_trafostanice')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
-                    return response.text();
+                    return response.json();
                 })
-                .then(html => {
-                    mapContainer.innerHTML = html;
-
-                    // Add Fullscreen button
-                    const fullscreenButton = document.createElement('button');
-                    fullscreenButton.id = 'fullscreen-button';
-                    fullscreenButton.textContent = 'Full Screen';
-                    fullscreenButton.onclick = toggleFullScreen;
-                    mapContainer.appendChild(fullscreenButton);
-
-                    statusDiv.textContent = 'Map loaded successfully';
-
-                    // Automatically make it full-screen on mobile devices
-                    if (window.innerWidth < 768) {
-                        toggleFullScreen();
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
                     }
+                    
+                    // Initialize map
+                    currentMap = L.map(mapContainer).setView(data.center, 11);
+                    
+                    // Define base maps
+                    const baseMaps = {
+                        "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 21,
+                            attribution: '© OpenStreetMap contributors'
+                        }),
+                        "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                            maxZoom: 18,
+                            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                        })
+                    };
+                    
+                    // Add default layer
+                    baseMaps["Satellite"].addTo(currentMap);
+                    
+                    // Create marker cluster group
+                    const markers = L.markerClusterGroup({
+                        showCoverageOnHover: true,
+                        zoomToBoundsOnClick: true,
+                        spiderfyOnMaxZoom: true,
+                        removeOutsideVisibleBounds: true,
+                        maxClusterRadius: 40,
+                        spiderfyDistanceMultiplier: 1.5,
+                        disableClusteringAtZoom: 18,
+                        chunkedLoading: true,
+                        iconCreateFunction: function(cluster) {
+                            const count = cluster.getChildCount();
+                            let size = count < 10 ? 30 : count < 100 ? 35 : 40;
+                            
+                            return L.divIcon({
+                                html: `<div><span>${count}</span></div>`,
+                                className: 'marker-cluster-custom',
+                                iconSize: L.point(size, size)
+                            });
+                        }
+                    });
+                    
+                    // Add markers to cluster group
+                    data.features.forEach(feature => {
+                        const coords = feature.geometry.coordinates;
+                        const props = feature.properties;
+                        
+                        const popupContent = `
+                            <div style='min-width: 200px'>
+                                <b>Naziv:</b> ${props.naziv}<br>
+                                <b>Snaga:</b> ${props.snaga} kVA
+                            </div>
+                        `;
+                        
+                        const marker = L.marker([coords[1], coords[0]])
+                            .bindPopup(popupContent)
+                            .bindTooltip(props.naziv);
+                        
+                        markers.addLayer(marker);
+                    });
+                    
+                    // Add marker cluster to map
+                    currentMap.addLayer(markers);
+                
+                    
+                    // Add custom fullscreen button
+                    const fullscreenButton = L.control({position: 'topright'});
+                    
+                    fullscreenButton.onAdd = function (map) {
+                        const btn = L.DomUtil.create('button', 'custom-fullscreen-btn');
+                        btn.innerHTML = '🗖';
+                        btn.title = 'View Fullscreen';
+                        
+                        btn.onclick = function() {
+                            if (!document.fullscreenElement) {
+                                const elem = mapContainer;
+                                if (elem.requestFullscreen) {
+                                    elem.requestFullscreen();
+                                } else if (elem.webkitRequestFullscreen) {
+                                    elem.webkitRequestFullscreen();
+                                } else if (elem.msRequestFullscreen) {
+                                    elem.msRequestFullscreen();
+                                }
+                                btn.innerHTML = '🗗';
+                            } else {
+                                if (document.exitFullscreen) {
+                                    document.exitFullscreen();
+                                } else if (document.webkitExitFullscreen) {
+                                    document.webkitExitFullscreen();
+                                } else if (document.msExitFullscreen) {
+                                    document.msExitFullscreen();
+                                }
+                                btn.innerHTML = '🗖';
+                            }
+                        };
+                        
+                        return btn;
+                    };
+                    
+                    fullscreenButton.addTo(currentMap);
+                    
+                    // Listen for fullscreen changes
+                    document.addEventListener('fullscreenchange', function() {
+                        const btn = document.querySelector('.custom-fullscreen-btn');
+                        if (document.fullscreenElement) {
+                            btn.innerHTML = '🗗';
+                        } else {
+                            btn.innerHTML = '🗖';
+                        }
+                    });
+
+                    // Add layer control
+                    L.control.layers(baseMaps, null, {
+                        position: 'topright'
+                    }).addTo(currentMap);
+                    
+                    // Add scale control
+                    L.control.scale().addTo(currentMap);                    
+                    
+                    statusDiv.textContent = 'Mapa uspješno učitana.';       
+                    
                 })
                 .catch(error => {
-                    console.error('Error performing search:', error);
-                    mapContainer.innerHTML = 'Error loading map. Please try again.';
-                    statusDiv.textContent = 'Error loading map. Please try again.';
+                    console.error('Error:', error);
+                    mapContainer.innerHTML = '<p class="error">Došlo je do greške pri učitavanju mape: ' + error.message + '</p>';
+                    statusDiv.textContent = 'Došlo je do greške pri učitavanju mape.';
                 });
         }
 
-        window.onload = function () {
-            console.log('Page loaded');
+
+
+
+        // Dio koda za geografski prikaz mjernih mejsta po trafopodručju
+        let allTsNazivValues = []; // Store all values for filtering
+        let currentMap = null;
+
+        window.onload = async function () {
+            const searchInput = document.getElementById('ts-search');
+            const dropdown = document.getElementById('ts-naziv-dropdown');
+            const statusDiv = document.getElementById('status');
+            const searchButton = document.getElementById('search-button');
+            
+            try {
+                statusDiv.textContent = "Loading data...";
+                const response = await fetch('/get_ts_naziv_values');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch TS_NAZIV values');
+                }
+                
+                allTsNazivValues = await response.json();
+                updateDropdown(allTsNazivValues);
+                
+                statusDiv.textContent = "Data loaded.";
+                searchButton.disabled = !dropdown.value;
+                
+                // Handle search input
+                searchInput.addEventListener('input', debounce(async (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    if (searchTerm.length >= 2) {
+                        // Option 1: Filter existing values (client-side)
+                        const filteredValues = allTsNazivValues.filter(value => 
+                            value.toLowerCase().includes(searchTerm)
+                        );
+                        updateDropdown(filteredValues);
+                        
+                        // Option 2: Fetch from server (uncomment to use)
+                        /*
+                        const response = await fetch(`/get_ts_naziv_values?search=${encodeURIComponent(searchTerm)}`);
+                        if (response.ok) {
+                            const filteredValues = await response.json();
+                            updateDropdown(filteredValues);
+                        }
+                        */
+                    } else if (searchTerm.length === 0) {
+                        updateDropdown(allTsNazivValues);
+                    }
+                }, 300));
+                
+                // Handle dropdown selection
+                dropdown.addEventListener('change', () => {
+                    searchButton.disabled = !dropdown.value;
+                    if (dropdown.value) {
+                        searchInput.value = dropdown.value;
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error fetching TS_NAZIV values:', error);
+                statusDiv.textContent = "Error loading data.";
+            }
         };
+
+        function updateDropdown(values) {
+            const dropdown = document.getElementById('ts-naziv-dropdown');
+            dropdown.innerHTML = '<option value="">--Odaberite Trafostanicu (TS_NAZIV)--</option>';
+            
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Debounce function to prevent too many API calls
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        async function fetchMapTSMM() {
+            const tsNaziv = document.getElementById('ts-naziv-dropdown').value;
+            const statusDiv = document.getElementById('status');
+            const mapContainer = document.getElementById('map-container-TSMM');
+            
+            if (!tsNaziv) {
+                statusDiv.textContent = "Molimo odaberite Trafostanicu.";
+                return;
+            }
+            
+            try {
+                statusDiv.textContent = 'Učitavanje mape...';
+                mapContainer.innerHTML = '';
+                
+                const response = await fetch(`/filter_data_by_ts_naziv?ts_naziv=${encodeURIComponent(tsNaziv)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const mapDiv = document.createElement('div');
+                mapDiv.style.height = '500px';
+                mapContainer.appendChild(mapDiv);
+                
+                // Initialize map
+                currentMap = L.map(mapDiv).setView(data.center, 13);
+                
+                // Define base maps
+                const baseMaps = {
+                    "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        maxZoom: 18,
+                        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    }),                    
+                    "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 21,
+                        attribution: '© OpenStreetMap contributors'
+                    })
+                };
+                
+                // Add default layer
+                baseMaps["Satellite"].addTo(currentMap);
+                
+                // Create a marker cluster group with modified settings
+                const markers = L.markerClusterGroup({
+                    showCoverageOnHover: true,
+                    zoomToBoundsOnClick: true,
+                    spiderfyOnMaxZoom: true,
+                    removeOutsideVisibleBounds: true,
+                    maxClusterRadius: 40,
+                    spiderfyDistanceMultiplier: 1.5,
+                    disableClusteringAtZoom: 22,  // Disable clustering at maximum zoom
+                    chunkedLoading: true,
+                    iconCreateFunction: function(cluster) {
+                        const count = cluster.getChildCount();
+                        let size;
+                        let className = 'marker-cluster-custom';
+                        
+                        if (count < 10) {
+                            size = 30;
+                        } else if (count < 100) {
+                            size = 35;
+                        } else {
+                            size = 40;
+                        }
+                        
+                        return L.divIcon({
+                            html: `<div><span>${count}</span></div>`,
+                            className: className,
+                            iconSize: L.point(size, size)
+                        });
+                    }
+                });
+                
+                // Add markers to cluster group
+                data.features.forEach(feature => {
+                    const coords = feature.geometry.coordinates;
+                    const props = feature.properties;
+                    
+                    const popupContent = `
+                        <strong>Ime i prezime:</strong> ${props.IME_PREZIME || 'N/A'}<br>
+                        <strong>Adresa:</strong> ${props.ADRESA_MM || 'N/A'}<br>
+                        <strong>Šifra mjernog mjesta:</strong> ${props.SIFRA || 'N/A'}<br>
+                        <strong>Angažovana snaga:</strong> ${props.ANG_SNAGA || 'N/A'}<br>
+                    `;
+                    
+                    const marker = L.marker([coords[1], coords[0]])
+                        .bindPopup(popupContent);
+                    
+                    markers.addLayer(marker);
+                });
+                
+                // Add marker cluster to map
+                currentMap.addLayer(markers);
+                
+                // Add custom fullscreen button
+                const fullscreenButton = L.control({position: 'topright'});
+                
+                fullscreenButton.onAdd = function (map) {
+                    const btn = L.DomUtil.create('button', 'custom-fullscreen-btn');
+                    btn.innerHTML = '🗖';
+                    btn.title = 'View Fullscreen';
+                    
+                    btn.onclick = function() {
+                        if (!document.fullscreenElement) {
+                            const elem = mapDiv;
+                            if (elem.requestFullscreen) {
+                                elem.requestFullscreen();
+                            } else if (elem.webkitRequestFullscreen) {
+                                elem.webkitRequestFullscreen();
+                            } else if (elem.msRequestFullscreen) {
+                                elem.msRequestFullscreen();
+                            }
+                            btn.innerHTML = '🗗';
+                        } else {
+                            if (document.exitFullscreen) {
+                                document.exitFullscreen();
+                            } else if (document.webkitExitFullscreen) {
+                                document.webkitExitFullscreen();
+                            } else if (document.msExitFullscreen) {
+                                document.msExitFullscreen();
+                            }
+                            btn.innerHTML = '🗖';
+                        }
+                    };
+                    
+                    return btn;
+                };
+                
+                fullscreenButton.addTo(currentMap);
+                
+                // Listen for fullscreen changes
+                document.addEventListener('fullscreenchange', function() {
+                    const btn = document.querySelector('.custom-fullscreen-btn');
+                    if (document.fullscreenElement) {
+                        btn.innerHTML = '🗗';
+                    } else {
+                        btn.innerHTML = '🗖';
+                    }
+                });
+
+                                // Add layer control
+                                L.control.layers(baseMaps, null, {
+                    position: 'topright'
+                }).addTo(currentMap);
+                
+                // Add scale control
+                L.control.scale().addTo(currentMap);
+                
+                statusDiv.textContent = "Mapa uspješno učitana.";
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.textContent = `Došlo je do greške: ${error.message}`;
+                mapContainer.innerHTML = `<p class="error">Došlo je do greške pri učitavanju mape: ${error.message}</p>`;
+            }
+        }
+
+
+
+
 
     </script>
 </body>
