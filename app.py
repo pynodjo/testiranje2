@@ -22,10 +22,6 @@ with open('data.json', 'r', encoding='utf-8') as file:
 with open('trafostanica_data.json', 'r', encoding='utf-8') as file:
     trafostanica_data = json.load(file)
 
-# Load JSON data_mm_deeo_union_soee
-with open('data_test.json', 'r', encoding='utf-8') as file:
-    data_mm_deeo_union_soee = json.load(file)
-
 # Create dictionaries for quick lookup
 sifra_to_coordinates = {feature['properties']['SIFRA']: feature['geometry']['coordinates']
                         for feature in data['features']
@@ -445,7 +441,7 @@ def get_ts_naziv_values():
         ts_naziv_values = set()
         missing_count = 0
         
-        for feature in data_mm_deeo_union_soee['features']:
+        for feature in data['features']:
             try:
                 ts_naziv = feature['properties'].get('TS_NAZIV')
                 if ts_naziv:
@@ -476,7 +472,7 @@ def filter_data_by_ts_naziv():
         
         # Use list comprehension with generator for better memory efficiency
         filtered_features = [
-            feature for feature in data_mm_deeo_union_soee['features']
+            feature for feature in data['features']
             if feature['properties'].get('TS_NAZIV') == ts_naziv
         ]
         
