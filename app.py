@@ -27,13 +27,25 @@ sifra_to_coordinates = {feature['properties']['SIFRA']: feature['geometry']['coo
                         for feature in data['features']
                         if 'geometry' in feature and 'coordinates' in feature['geometry']}
 
+
 # Read and process the Excel file
 df = pd.read_excel('EP_Eksport_Uredjaja.xlsx', sheet_name='Eksport_uredjaja', skiprows=6)
 df = df.rename(columns=lambda x: x.strip())
 df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 df = df[~(df.duplicated(subset='Šifra') & df['Naziv TS'].isnull())]
+
+# Convert to integers for these columns - but keep OJ as strings
 df['Serijski'] = df['Serijski'].astype(int)
 df['Šifra'] = df['Šifra'].astype(int)
+
+# Ensure OJ is stored as string type
+df['OJ'] = df['OJ'].astype(str)
+
+# Debugging information
+#print(f"DataFrame loaded with {len(df)} rows")
+#print(f"Unique OJ values: {df['OJ'].unique()}")
+#print(f"OJ column dtype: {df['OJ'].dtype}")
+
 df = df.drop_duplicates(subset=['Serijski', 'Šifra'])
 
 # Mapping 'Serijski' to 'Šifra'
@@ -230,12 +242,15 @@ def get_oh_values_by_oj(oj_value):
     
     try:
         if oj_value == "303":
-            filtered_df = df[df['OJ'].isin([3031, 3032])]
+            # Convert to strings for comparison since OJ values are strings
+            filtered_df = df[df['OJ'].isin(['3031', '3032'])]
         else:
-            filtered_df = df[df['OJ'] == int(oj_value)]
+            # Direct string comparison
+            filtered_df = df[df['OJ'] == oj_value]
         
         filtered_df = filtered_df.sort_values(by='OH')
         unique_oh_values = filtered_df['OH'].unique().tolist()
+        print(f"Found {len(unique_oh_values)} unique OH values for OJ: {oj_value}")
         return jsonify(unique_oh_values)
     except Exception as e:
         print(f"Error in get_oh_values_by_oj: {str(e)}")
@@ -252,15 +267,15 @@ def search_by_oj_oh():
     print(f"search_by_oj_oh called with oj_value: {oj_value}, oh_value: {oh_value}")
     
     try:
-        # Filter data
+        # Filter data using string comparison
         if oj_value == "303":
-            filtered_df = df[(df['OJ'].isin([3031, 3032])) & (df['OH'] == oh_value)]
+            filtered_df = df[(df['OJ'].isin(['3031', '3032'])) & (df['OH'] == oh_value)]
         else:
-            filtered_df = df[(df['OJ'] == int(oj_value)) & (df['OH'] == oh_value)]
+            filtered_df = df[(df['OJ'] == oj_value) & (df['OH'] == oh_value)]
         
         print(f"Filtered DataFrame shape: {filtered_df.shape}")
         
-        # Prepare features list for frontend
+        # Rest of your code remains the same
         features = []
         for index, row in filtered_df.iterrows():
             sifra = row['Šifra']
@@ -305,7 +320,7 @@ def search_by_oj_oh():
             "center": center,
             "total": len(features)
         })
-        
+    
     except Exception as e:
         print(f"Error in search_by_oj_oh: {str(e)}")
         return jsonify({"error": str(e)}), 500
