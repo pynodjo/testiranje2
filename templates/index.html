@@ -113,7 +113,6 @@
     <div style="height: 20px;"></div> <!-- Empty row -->
     <!-- Prikaz svih trafostanica -->
 
-
     <div class="container">
         <h1>Geografski prikaz svih trafostanica</h1>
         <button id="view-all-btn" class="map-button" onclick="loadAllTrafostanice()">Prikaži sve trafostanice na mapi</button>
@@ -121,12 +120,35 @@
         <div id="status"></div>
         <div id="map-container-trafostanica"></div>
         <button class="bottom-button" onclick="window.location.reload();">Osvježi</button>
-    </div>
+    </div>    
+
+
+    <div class="container" style="margin-top:20px;">
+        <h1>Jednopolne sheme PJD</h1>
+        <p>Preuzmite sheme (PDF):</p>
+        <ul class="list-unstyled">
+            <li>
+                <button class="bottom-button" onclick="window.location.href='{{ url_for('static', filename='pdfs/Jednopolna_shema_PJD_Mostar.pdf') }}'">
+                    Jednopolna shema PJD Mostar
+                </button>
+            </li>
+            <li>
+                <button class="bottom-button" onclick="window.location.href='{{ url_for('static', filename='pdfs/Jednopolna_shema_PJD_Konjic.pdf') }}'">
+                    Jednopolna shema PJD Konjic
+                </button>
+            </li>
+            <li>
+                <button class="bottom-button" onclick="window.location.href='{{ url_for('static', filename='pdfs/Jednopolna_shema_PJD_Jablanica.pdf') }}'">
+                    Jednopolna shema PJD Jablanica
+                </button>
+            </li>
+        </ul>   
+    </div>   
 
 
     <div class="footer">
         <p>© ED Mostar 2025</p>
-        <small>Ažurirano 02.09.2025.</small>
+        <small>Ažurirano 02.09.2025. v2pdfs</small>
     </div>
 
     <script>

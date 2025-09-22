@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory, abort
 import json
 import pandas as pd
 import numpy as np  # Import numpy
@@ -7,7 +7,8 @@ from datetime import datetime
 import re  # Add this import for regex
 import folium
 import atexit
-
+from werkzeug.utils import secure_filename
+import os
 
 app = Flask(__name__)
 
@@ -490,6 +491,25 @@ def filter_data_by_ts_naziv():
     except Exception as e:
         app.logger.error(f"Error in filter_data_by_ts_naziv: {str(e)}")
         return jsonify({"error": "An error occurred while filtering data."}), 500
+
+
+
+
+
+PDF_FOLDER = os.path.join(app.static_folder, "pdfs")
+ALLOWED_PDFS = {
+    "Jednopolna_shema_PJD_Mostar.pdf": "Jednopolna shema PJD Mostar",
+    "Jednopolna_shema_PJD_Jablanica.pdf": "Jednopolna shema PJD Jablanica",
+    "Jednopolna_shema_PJD_Konjic.pdf": "Jednopolna shema PJD Konjic",
+}
+
+@app.route("/download_pdf/<path:filename>")
+def download_pdf(filename):
+    filename_safe = secure_filename(filename)
+    if filename_safe not in ALLOWED_PDFS:
+        app.logger.warning(f"Attempt to access unauthorized file: {filename_safe}")
+        return abort(404)
+    return send_from_directory(directory=PDF_FOLDER, filename=filename_safe, as_attachment=True)
 
 
 
